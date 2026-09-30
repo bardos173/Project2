@@ -29,6 +29,18 @@ int repc=1;      //repetition condition of PI controller
 int t0;          //memory of time for the Purpose of displaying the results
 int repeat=0;    //repeat indicator to only let the memory of time for the Purpose of displaying the results be updated once
 
+//OUR LOGIC
+int count = 0;
+int compareCount;
+int ourDirection = 0; //where 0 is clockwise and 1 is counterclockwise
+int currentState;
+int prevState = 0;
+//the following two are the current readings of each signal
+int signalA;
+int signalB;
+
+
+
 
 void setup() {
   // put your setup code here, to run on
@@ -90,6 +102,46 @@ while ((b>=c) && (b<=(c+15500)) && exitt==0)   //let the main loop to be run for
 
   s1=digitalRead(7);           //reading Chanel 1 of builtin encoder
   s2=digitalRead(8);           //reading Chanel 2 of builtin encoder
+
+  //READ ENCODERS HERE
+
+  //decode logic:
+  //set current state
+  int currentState = (signalA << 1) | signalB; //combines the two signal's bits 0 or 1 into a 2 bit number represented as an integer
+  //eg state 00 = state 0, state 01 = 1 etc.
+  
+  
+  //compare the states
+  //assuming clockwise
+  //A:  ___|---|___|---|___
+  //B: _____|---|___|---|_
+  //anticlocwise
+  //A: _____|---|___|---|_
+  //B: ___|---|___|---|___
+
+  //if clockwise, increment count:
+  if (prevState == 0 && currentState == 2) count ++;
+  if (prevState == 2 && currentState == 3) count ++;
+  if (prevState == 3 && currentState == 1) count ++;
+  if (prevState == 1 && currentState == 0) count ++;
+  //if anticlockwise, decrement count:
+  if (prevState == 0 && currentState == 1) count --;
+  if (prevState == 1 && currentState == 3) count --;
+  if (prevState == 3 && currentState == 2) count --;
+  if (prevState == 2 && currentState == 0) count --;
+
+  prevState = currentState;
+  //set direction: 0 is clockwise, 1 is counterclockwise
+  ourDirection = (compareCount > count) ? 0 : (compareCount < count ? 1 : ourDirection);
+  compareCount = count;
+  
+
+
+  //set previous state 
+
+
+
+
  if (s1!=s2 && r==0)
  {
   s=s+1;      //counters for rpm that displyed every 5s
