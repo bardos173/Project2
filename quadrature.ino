@@ -186,7 +186,8 @@ if (b%100==0)
   Serial.println((s/(228))*12);                         //formula for rpm in each 5s
   
   Serial.print("RPM from optical quadrature encoder: ");
-  Serial.println(0);
+  Serial.println((count/(228))*12);     //formula for our one
+ // Serial.println(0);
   
   Serial.print("Error: ");
   Serial.println(-(s/(228))*12);
@@ -196,9 +197,11 @@ if (b%100==0)
   else{Serial.print("CCW");}
   Serial.print("  ,   ");
   
+  //our one:
   Serial.print("direction read by sensor:  ");
-  Serial.println("");
-  Serial.println();
+  if (ourDirection==0){Serial.print("CW");}
+  else{Serial.print("CCW");}
+  Serial.print("  ,   ");
 
   s=0;
   directionm=0;
