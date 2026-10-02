@@ -28,10 +28,11 @@ int repeat = 0;
 
 // ---------------- Our optical quadrature encoder ----------------
 // Wire channel A to pin 8 (PB0) and channel B to pin 9 (PB1). Change here if different.
-#define A_BIT 0   // bit in PINB for signal A (pin 8)
-#define B_BIT 1   // bit in PINB for signal B (pin 9)
+#define A_BIT 1   // bit in PINB for signal A (pin 9)
+#define B_BIT 0   // bit in PINB for signal B (pin 8)
 
-#define OUR_COUNTS_PER_REV 228.0   // placeholder: set to your encoder's counts per revolution
+
+#define OUR_COUNTS_PER_REV 32.0  
 
 volatile int signalA = 0;
 volatile int signalB = 0;
@@ -45,7 +46,7 @@ int ourDirection = 0;              // 0 = clockwise, 1 = counterclockwise
 
 // Transition table, index = (prevState << 2) | currentState, state = (A << 1) | B
 // CW:  0->2, 2->3, 3->1, 1->0  (+1)     CCW: 0->1, 1->3, 3->2, 2->0  (-1)
-const int8_t QEM[16] = {
+const int8_t stepTable[16] = {
    0, -1,  1,  0,
    1,  0,  0, -1,
   -1,  0,  0,  1,
@@ -128,22 +129,22 @@ void loop() {
       cli();
       int A = signalA;
       int B = signalB;
-      long cw = countWindow;
+      long count = countWindow;
       sei();
 
       // Direction from change in count since last check
-      if (cw > prevCountWindow) ourDirection = 0;
-      else if (cw < prevCountWindow) ourDirection = 1;
-      prevCountWindow = cw;
+      if ((count) > prevCountWindow) ourDirection = 1;
+      else if (count < prevCountWindow) ourDirection = 0;
+      prevCountWindow = count;
 
-      Serial.print("time in ms: ");
-      Serial.print(b - t0);
-      Serial.print("  signalA: ");
-      Serial.print(A);
-      Serial.print("  signalB: ");
-      Serial.print(B);
-      Serial.print("  builtin rpm: ");
-      Serial.println(rpmm);
+//      Serial.print("time in ms: ");
+//      Serial.print(b - t0);
+//      Serial.print("  signalA: ");
+//      Serial.print(A);
+//      Serial.print("  signalB: ");
+//      Serial.print(B);
+//      Serial.print("  builtin rpm: ");
+//      Serial.println(rpmm);
 
       if ((b - t0) % 5000 == 0) {
         Serial.println();
@@ -151,18 +152,18 @@ void loop() {
         Serial.println((s / 228) * 12);
 
         Serial.print("RPM from optical quadrature encoder: ");
-        float ourRPM = (cw / OUR_COUNTS_PER_REV) * 12;   // 5s window -> *12
+        float ourRPM = (count / OUR_COUNTS_PER_REV) * 12;   // 5s window -> *12
         Serial.println(ourRPM);
 
         Serial.print("Error: ");
-        Serial.println((s / 228) * 12 - ourRPM);          // builtin minus ours
+        Serial.println((s / 228) * 12 - abs(ourRPM));          // builtin minus ours
 
         Serial.print("direction read by motor's sensor: ");
         Serial.print(dirm == 0 ? "CW" : "CCW");
         Serial.print("  ,   ");
 
         Serial.print("direction read by sensor:  ");
-        Serial.println(ourDirection == 0 ? "CW" : "CCW");
+        Serial.println(ourDirection == 1 ? "CW" : "CCW");
 
         s = 0;
         directionm = 0;
@@ -196,7 +197,7 @@ ISR(PCINT0_vect) {
   signalB = (pb >> B_BIT) & 1;
 
   uint8_t currentState = (signalA << 1) | signalB;
-  int8_t step = QEM[(prevState << 2) | currentState];
+  int8_t step = stepTable[(prevState << 2) | currentState];
 
   count += step;
   countWindow += step;
