@@ -9,7 +9,7 @@ bool clockwise = 0;
 //-------------------------------------------------------
 float Errors[10] = {};
 int errIdx = 0;
-int count = 0;
+//int count = 0;
 //-------------------------------------------------------
 float deg = 45;  // Rotation degree
 float s = 0;     //Encoder counts
@@ -159,13 +159,13 @@ void loop() {
     Serial.println();
     s = 0;
     finish = 0;
-    ++count;
+    //++count;
   }
   analogWrite(6, 0);  //turning off the motor
   //-----------------------------------------------------------
 
   //write a summary if over the time and set stop flag
-  if((count>10)&&(summaryDone == 0)){
+  if((rep>10)&&(summaryDone == 0)){
     int largest1Idx = 0;
     int largest2Idx = 1;
     for (int i=2; i<10; i++){
