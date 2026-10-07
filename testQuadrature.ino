@@ -37,11 +37,11 @@ int repeat = 0;
 volatile int signalA = 0;
 volatile int signalB = 0;
 volatile uint8_t prevState = 0;
-volatile long count = 0;           // total signed count
-volatile long countWindow = 0;     // signed count, reset every 5s for RPM
+volatile long totalcount = 0;           // total signed count
+volatile long count = 0;     // signed count, reset every 5s for RPM
 volatile int8_t lastStep = 0;      // +1 = clockwise, -1 = counterclockwise
 
-long prevCountWindow = 0;
+long prevcount = 0;          // historical count value
 int ourDirection = 0;              // 0 = clockwise, 1 = counterclockwise
 
 // Transition table, index = (prevState << 2) | currentState, state = (A << 1) | B
@@ -125,32 +125,19 @@ void loop() {
       rpmm = (s_2 / (2 * 114)) * 600;   // rpm each 100ms for PI controller
       s_2 = 0;
 
-      // Safely copy the values the ISR modifies
-      cli();
-      int A = signalA;
-      int B = signalB;
-      long count = countWindow;
-      sei();
-
       // Direction from change in count since last check
-      if ((count) > prevCountWindow) ourDirection = 1;
-      else if (count < prevCountWindow) ourDirection = 0;
-      prevCountWindow = count;
+      if ((count) > prevcount) ourDirection = 1;
+      else if (count < prevcount) ourDirection = 0;
 
-//      Serial.print("time in ms: ");
-//      Serial.print(b - t0);
-//      Serial.print("  signalA: ");
-//      Serial.print(A);
-//      Serial.print("  signalB: ");
-//      Serial.print(B);
-//      Serial.print("  builtin rpm: ");
-//      Serial.println(rpmm);
+      // update the historical count with the current value
+      prevcount = count;
 
       if ((b - t0) % 5000 == 0) {
         Serial.println();
         Serial.print("RPM from builtin encoder: ");
         Serial.println((s / 228) * 12);
 
+        // Our values
         Serial.print("RPM from optical quadrature encoder: ");
         float ourRPM = (count / OUR_COUNTS_PER_REV) * 12;   // 5s window -> *12
         Serial.println(ourRPM);
@@ -190,18 +177,18 @@ void loop() {
   exitt = 1;
 }
 
-// ---------------- ISR: read signals A and B and decode instantly ----------------
+// ---------------- ISR: read signals A and B and decodes ----------------
 ISR(PCINT0_vect) {
   uint8_t pb = PINB;
-  signalA = (pb >> A_BIT) & 1;
-  signalB = (pb >> B_BIT) & 1;
 
-  uint8_t currentState = (signalA << 1) | signalB;
-  int8_t step = stepTable[(prevState << 2) | currentState];
+  signalA = (pb >> A_BIT) & 1; // check if PINB bit at A is 1
+  signalB = (pb >> B_BIT) & 1; // check if PINB bit at B is 1
 
-  count += step;
-  countWindow += step;
-  if (step != 0) lastStep = step;
+  uint8_t currentState = (signalA << 1) | signalB; // current state is AB (e.g. 01)
+   // step value is either 0, 1 or -1 depending on the difference between previous and current count
+  int8_t step = stepTable[(prevState << 2) | currentState]; 
 
-  prevState = currentState;
+  count += step; // add the step to the count
+
+  prevState = currentState; // store previous state for reference to check direction
 }
