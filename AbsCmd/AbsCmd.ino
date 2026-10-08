@@ -63,6 +63,8 @@ void setup() {
   if (deg < 0) {
       analogWrite(3, 255);  //change the direction of rotation by applying voltage to pin 3 of arduino
   }
+  Serial.print("Command angle: ");
+  Serial.println(deg);
   deg = abs(deg);
 
 
@@ -154,7 +156,7 @@ void loop() {
 
     float Error = angleDiff - s * 360 / 228; // ours minus theirs
     Errors[errIdx++] = Error;
-    Serial.print("Error :");
+    Serial.print("Error: ");
     Serial.println(Error);  //displaying error
     Serial.println();
     s = 0;
